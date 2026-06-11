@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="endustriyel">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atığı Enerjiye Dönüştür — Tesis Kontrol Paneli</title>
+<meta name="theme-color" content="#0a1410">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---- TEMALAR ---- */
+  :root,[data-theme="endustriyel"]{
+    --bg:#0a1410; --panel:#0f1d18; --panel-2:#12241d; --line:#1d3a2e;
+    --green:#7CFC4A; --green-dim:#4a9e2e; --amber:#FFB23E; --red:#FF5C57;
+    --cyan:#3EE0D0; --txt:#cfe8d8; --txt-dim:#6f8f7e; --ink:#06140a;
+  }
+  [data-theme="neon"]{
+    --bg:#0c0a18; --panel:#150f24; --panel-2:#1a1330; --line:#332458;
+    --green:#C04BFF; --green-dim:#7a2eb0; --amber:#FF3EA5; --red:#FF5C57;
+    --cyan:#3EE0FF; --txt:#e8dcff; --txt-dim:#8f7eb8; --ink:#0c0a18;
+  }
+  [data-theme="okyanus"]{
+    --bg:#06121a; --panel:#0b1d2a; --panel-2:#0e2433; --line:#1d4055;
+    --green:#33C3FF; --green-dim:#1d7fb0; --amber:#FFC857; --red:#FF6B6B;
+    --cyan:#5BE7C4; --txt:#d2e9f5; --txt-dim:#6f93a5; --ink:#04121c;
+  }
+  [data-theme="acik"]{
+    --bg:#eaf1ec; --panel:#ffffff; --panel-2:#f4f9f5; --line:#d3e2d8;
+    --green:#1f9e4a; --green-dim:#157a38; --amber:#d98a16; --red:#d6453f;
+    --cyan:#0f9b8e; --txt:#1a2a22; --txt-dim:#5c7568; --ink:#ffffff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'IBM Plex Mono',monospace;
+    background:
+      radial-gradient(900px 500px at 80% -10%, color-mix(in srgb, var(--green) 8%, transparent), transparent 60%),
+      radial-gradient(700px 600px at 0% 110%, color-mix(in srgb, var(--cyan) 6%, transparent), transparent 55%),
+      var(--bg);
+    color:var(--txt);min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:24px;overflow-x:hidden;transition:background .3s,color .3s;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(color-mix(in srgb,var(--green) 4%,transparent) 1px,transparent 1px),
+                     linear-gradient(90deg,color-mix(in srgb,var(--green) 4%,transparent) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+  .app{
+    width:100%;max-width:880px;position:relative;z-index:1;
+    border:1px solid var(--line);
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border-radius:18px;
+    box-shadow:0 30px 80px rgba(0,0,0,.5), inset 0 1px 0 color-mix(in srgb,var(--green) 6%,transparent);
+    overflow:hidden;transition:background .3s,border-color .3s;
+  }
+  .app.shake{animation:shake .4s}
+  @keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(-5px,2px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(3px,-1px)}}
+  .app.combo-glow{box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 2px var(--green),0 0 50px color-mix(in srgb,var(--green) 30%,transparent)}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,color-mix(in srgb,var(--green) 5%,transparent),transparent)}
+  .brand{display:flex;align-items:center;gap:12px}
+  .reactor{width:34px;height:34px;border-radius:9px;flex:none;background:radial-gradient(circle at 50% 35%, var(--green), var(--green-dim));box-shadow:0 0 18px color-mix(in srgb,var(--green) 60%,transparent);display:grid;place-items:center;font-size:18px;animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 14px color-mix(in srgb,var(--green) 40%,transparent)}50%{box-shadow:0 0 26px color-mix(in srgb,var(--green) 80%,transparent)}}
+  h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:18px;letter-spacing:.3px;line-height:1.05;color:var(--txt)}
+  .sub{font-size:10.5px;color:var(--txt-dim);letter-spacing:1.5px;text-transform:uppercase}
+  .hright{display:flex;align-items:center;gap:10px}
+  .theme-sel{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--panel-2);border:1px solid var(--line);color:var(--txt);padding:7px 8px;border-radius:9px;cursor:pointer;outline:none}
+  .sound-btn{background:transparent;border:1px solid var(--line);color:var(--txt);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:15px;transition:.15s}
+  .sound-btn:hover{border-color:var(--green)}
+  .status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--green);letter-spacing:1px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite}
+  @keyframes blink{50%{opacity:.3}}
+
+  .tabs{display:flex;border-bottom:1px solid var(--line);background:rgba(0,0,0,.12)}
+  .tab{flex:1;text-align:center;padding:12px 6px;font-size:11.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--txt-dim);cursor:pointer;border-bottom:2px solid transparent;transition:.2s;user-select:none}
+  .tab:hover{color:var(--txt)}
+  .tab.active{color:var(--green);border-bottom-color:var(--green);background:color-mix(in srgb,var(--green) 5%,transparent)}
+  .view{display:none}.view.active{display:block}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+  .stat{background:var(--panel);padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+  .stat .label{font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt-dim)}
+  .stat .val{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:24px;color:var(--txt);line-height:1}
+  .stat .val.energy{color:var(--green)}.stat .val.combo{color:var(--amber)}
+  .stat .unit{font-size:11px;color:var(--txt-dim);font-weight:400}
+
+  .meter-wrap{padding:16px 24px 8px}
+  .meter-top{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1px;color:var(--txt-dim);text-transform:uppercase;margin-bottom:7px}
+  .meter{height:12px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid var(--line);overflow:hidden;position:relative}
+  .meter .fill{height:100%;width:0%;border-radius:8px;background:linear-gradient(90deg,var(--green-dim),var(--green),var(--cyan));box-shadow:0 0 14px color-mix(in srgb,var(--green) 50%,transparent);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .meter .ticks{position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(0,0,0,.4) 1px,transparent 1px);background-size:10% 100%}
+
+  .stage{padding:12px 24px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:230px;justify-content:center;position:relative}
+  .modebar{display:flex;gap:6px;margin-bottom:2px;flex-wrap:wrap;justify-content:center}
+  .modebar button{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 11px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--txt-dim);cursor:pointer;transition:.15s}
+  .modebar button.sel{border-color:var(--cyan);color:var(--cyan);background:color-mix(in srgb,var(--cyan) 8%,transparent)}
+  .lives{font-size:17px;letter-spacing:2px;height:20px;visibility:hidden}
+  .pubanner{position:absolute;top:2px;left:50%;transform:translateX(-50%);font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;padding:5px 14px;border-radius:20px;border:1px solid var(--green);opacity:0;pointer-events:none;transition:opacity .2s;z-index:6;white-space:nowrap}
+  .pubanner.show{opacity:1}
+  .pubanner.x2{color:var(--amber);border-color:var(--amber);box-shadow:0 0 16px color-mix(in srgb,var(--amber) 40%,transparent)}
+  .pubanner.auto{color:var(--cyan);border-color:var(--cyan);box-shadow:0 0 16px color-mix(in srgb,var(--cyan) 40%,transparent)}
+  .pubanner.time{color:var(--green);border-color:var(--green);box-shadow:0 0 16px color-mix(in srgb,var(--green) 40%,transparent)}
+  .incoming-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--txt-dim)}
+  .belt{width:100%;max-width:360px;height:14px;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.35);overflow:hidden;position:relative;opacity:0;transition:opacity .3s}
+  .belt.on{opacity:1}
+  .belt::before{content:"";position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--green) 18%,transparent) 0 10px,transparent 10px 20px);animation:belt 1s linear infinite}
+  @keyframes belt{from{background-position:0 0}to{background-position:28px 0}}
+  .waste{font-size:70px;line-height:1;user-select:none;filter:drop-shadow(0 8px 18px rgba(0,0,0,.5));animation:drop .4s cubic-bezier(.2,1.2,.4,1);cursor:grab;touch-action:none}
+  .waste:active{cursor:grabbing}.waste.dragging{opacity:.25}
+  @keyframes drop{from{transform:translateY(-30px) scale(.6);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+  .waste-name{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:16px;color:var(--txt)}
+  .waste-hint{font-size:11px;color:var(--txt-dim)}
+  .itimer{width:200px;height:5px;border-radius:4px;background:rgba(0,0,0,.35);border:1px solid var(--line);overflow:hidden;margin-top:4px;visibility:hidden}
+  .itimer .ib{height:100%;width:100%;background:linear-gradient(90deg,var(--green),var(--amber),var(--red))}
+  .feedback{position:absolute;top:40px;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:15px;letter-spacing:.5px;opacity:0;pointer-events:none;text-align:center}
+  .feedback.show{animation:pop 1s ease forwards}
+  @keyframes pop{0%{opacity:0;transform:translateY(8px) scale(.8)}25%{opacity:1;transform:translateY(0) scale(1.1)}100%{opacity:0;transform:translateY(-18px) scale(1)}}
+  .diff{display:flex;gap:8px;margin-top:6px}
+  .diff button{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--txt-dim);cursor:pointer;transition:.15s}
+  .diff button.sel{border-color:var(--green);color:var(--green);background:color-mix(in srgb,var(--green) 8%,transparent)}
+  .campbar{display:none;align-items:center;gap:12px;margin-top:6px;border:1px solid var(--cyan);border-radius:10px;padding:6px 8px;background:color-mix(in srgb,var(--cyan) 7%,transparent)}
+  .campbar.on{display:flex}
+  .campbar button{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;background:transparent;border:1px solid var(--line);color:var(--txt);width:30px;height:30px;border-radius:8px;cursor:pointer}
+  .campbar button:disabled{opacity:.3;cursor:default}
+  .campbar .campinfo{text-align:center;min-width:190px}
+  .campbar .campinfo b{font-family:'Bricolage Grotesque',sans-serif;font-size:13px;color:var(--cyan);display:block}
+  .campbar .campinfo span{font-size:10px;color:var(--txt-dim)}
+  .camp-result{font-size:12px;color:var(--txt-dim);line-height:1.5;max-width:360px}
+  .camp-result b{color:var(--green)}
+
+  .procs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:8px 24px 22px}
+  .proc{position:relative;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);padding:14px 8px 12px;cursor:pointer;text-align:center;transition:transform .12s,border-color .2s,box-shadow .2s;overflow:hidden}
+  .proc:hover{transform:translateY(-3px);border-color:var(--c);box-shadow:0 10px 30px rgba(0,0,0,.4),0 0 0 1px var(--c) inset}
+  .proc:active{transform:translateY(0)}
+  .proc.dragover{border-color:var(--c);box-shadow:0 0 0 2px var(--c) inset,0 0 26px var(--c);transform:translateY(-3px)}
+  .proc .pico{font-size:30px;line-height:1;margin-bottom:6px;display:block;pointer-events:none}
+  .proc .pname{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:12px;color:var(--txt);pointer-events:none}
+  .proc .pdesc{font-size:9px;color:var(--txt-dim);margin-top:3px;line-height:1.3;pointer-events:none}
+  .proc .ptag{position:absolute;top:0;left:0;right:0;height:3px;background:var(--c);opacity:.7}
+  .proc.flash-ok{animation:flashok .5s}.proc.flash-bad{animation:flashbad .5s}
+  @keyframes flashok{0%,100%{box-shadow:none}40%{box-shadow:0 0 0 2px var(--green) inset,0 0 30px color-mix(in srgb,var(--green) 50%,transparent)}}
+  @keyframes flashbad{0%,100%{box-shadow:none}20%,60%{box-shadow:0 0 0 2px var(--red) inset}40%,80%{transform:translateX(-4px)}}
+
+  .drag-ghost{position:fixed;font-size:60px;pointer-events:none;z-index:99;transform:translate(-50%,-50%);filter:drop-shadow(0 6px 14px rgba(0,0,0,.6))}
+  .particle{position:fixed;pointer-events:none;z-index:90;font-size:14px;font-weight:800;font-family:'Bricolage Grotesque',sans-serif;color:var(--green);will-change:transform,opacity}
+
+  footer{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-top:1px solid var(--line);background:rgba(0,0,0,.12);gap:12px}
+  .hint{font-size:10.5px;color:var(--txt-dim);letter-spacing:.5px;flex:1}
+  .btn{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;background:var(--green);color:var(--ink);border:none;padding:9px 18px;border-radius:9px;box-shadow:0 0 16px color-mix(in srgb,var(--green) 40%,transparent);transition:transform .1s,box-shadow .2s;white-space:nowrap}
+  .btn:hover{box-shadow:0 0 26px color-mix(in srgb,var(--green) 70%,transparent)}.btn:active{transform:scale(.96)}
+  .btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line);box-shadow:none}
+  .btn.stop{background:var(--red);color:#fff;box-shadow:0 0 16px color-mix(in srgb,var(--red) 40%,transparent)}
+
+  .overlay{position:absolute;inset:0;z-index:5;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px}
+  .overlay.show{display:flex;animation:fade .4s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .overlay h2{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:26px;color:var(--txt)}
+  .overlay .big{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:46px;color:var(--green);text-shadow:0 0 30px color-mix(in srgb,var(--green) 50%,transparent);line-height:1}
+  .overlay p{font-size:12px;color:var(--txt-dim);max-width:380px;line-height:1.6}
+  .rank{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:15px;color:var(--amber);letter-spacing:1px}
+  .ostats{display:flex;gap:22px;margin:2px 0}
+  .ostats div{display:flex;flex-direction:column;gap:2px}
+  .ostats b{font-family:'Bricolage Grotesque',sans-serif;font-size:19px;color:var(--txt)}
+  .ostats span{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--txt-dim)}
+  .typestats{display:flex;gap:8px;margin:2px 0;flex-wrap:wrap;justify-content:center}
+  .ts{border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:80px}
+  .ts .ti{font-size:18px}
+  .ts .tn{font-size:8.5px;color:var(--txt-dim);letter-spacing:.5px;text-transform:uppercase;margin:2px 0}
+  .ts .tv{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;color:var(--txt)}
+  .nameRow{display:flex;gap:8px;align-items:center}
+  .nameRow input{font-family:'IBM Plex Mono',monospace;background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--txt);padding:9px 12px;border-radius:8px;font-size:13px;width:160px;outline:none}
+  .nameRow input:focus{border-color:var(--green)}
+
+  .calc{padding:22px 24px}
+  .calc h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;color:var(--txt);margin-bottom:4px}
+  .calc .lead{font-size:11px;color:var(--txt-dim);margin-bottom:18px;line-height:1.5}
+  .crow{display:grid;grid-template-columns:1fr 110px 1fr;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+  .crow .cm{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--txt)}
+  .crow .cm .ce{font-size:22px}
+  .crow .cm small{display:block;font-size:9.5px;color:var(--txt-dim);letter-spacing:.3px}
+  .crow input{font-family:'IBM Plex Mono',monospace;background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--txt);padding:8px 10px;border-radius:8px;font-size:14px;width:100%;text-align:right;outline:none}
+  .crow input:focus{border-color:var(--green)}
+  .crow .out{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;text-align:right;color:var(--green)}
+  .crow .out small{display:block;font-weight:400;font-size:9.5px;color:var(--txt-dim);font-family:'IBM Plex Mono',monospace}
+  .ctotal{margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(135deg,color-mix(in srgb,var(--green) 6%,transparent),transparent);display:flex;flex-direction:column;gap:12px}
+  .ctotal .tbig{display:flex;align-items:baseline;gap:10px}
+  .ctotal .tbig b{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:40px;color:var(--green);text-shadow:0 0 24px color-mix(in srgb,var(--green) 40%,transparent)}
+  .ctotal .tbig span{font-size:12px;color:var(--txt-dim)}
+  .equivs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .eq{background:rgba(0,0,0,.2);border:1px solid var(--line);border-radius:10px;padding:11px}
+  .eq b{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;color:var(--txt);display:block}
+  .eq span{font-size:9.5px;color:var(--txt-dim);letter-spacing:.5px;line-height:1.3;display:block;margin-top:2px}
+  .disc{font-size:9.5px;color:var(--txt-dim);margin-top:14px;line-height:1.5}
+
+  .board{padding:22px 24px;min-height:300px}
+  .board h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;color:var(--txt);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+  .lbrow{display:grid;grid-template-columns:42px 1fr auto auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:rgba(0,0,0,.12)}
+  .lbrow .rk{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:20px;color:var(--txt-dim);text-align:center}
+  .lbrow.top1 .rk{color:#FFD23E}.lbrow.top2 .rk{color:#cdd9d2}.lbrow.top3 .rk{color:#d99a5b}
+  .lbrow .nm{font-size:14px;color:var(--txt)}
+  .lbrow .nm small{display:block;font-size:9.5px;color:var(--txt-dim)}
+  .lbrow .en{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:18px;color:var(--green)}
+  .lbrow .en small{font-size:9.5px;color:var(--txt-dim);font-weight:400;font-family:'IBM Plex Mono',monospace}
+  .lbrow .sc{font-size:12px;color:var(--txt-dim);text-align:right}
+  .empty{text-align:center;color:var(--txt-dim);font-size:12px;padding:40px 0;line-height:1.6}
+
+  .info{padding:22px 24px}
+  .info h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;color:var(--txt);margin-bottom:14px}
+  .icard{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:12px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border-left:3px solid var(--c)}
+  .icard .ih{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .icard .ih .ico{font-size:26px}
+  .icard .ih b{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:15px;color:var(--txt)}
+  .icard .ih small{display:block;font-size:9.5px;color:var(--c);letter-spacing:1px;text-transform:uppercase}
+  .icard p{font-size:12px;color:var(--txt);line-height:1.6}
+  .icard .flow{font-size:11px;color:var(--txt-dim);margin-top:8px;letter-spacing:.3px}
+  .icard .flow b{color:var(--c)}
+
+  /* BAŞARIM & İSTATİSTİK */
+  .profile{padding:22px 24px}
+  .profile h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;color:var(--txt);margin:0 0 12px}
+  .profile h3.mt{margin-top:22px}
+  .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .scard{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(0,0,0,.12)}
+  .scard .sv{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:22px;color:var(--green);line-height:1}
+  .scard .sl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--txt-dim);margin-top:5px}
+  .agrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .acard{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:rgba(0,0,0,.12);opacity:.45;filter:grayscale(.6);transition:.2s}
+  .acard.on{opacity:1;filter:none;border-color:color-mix(in srgb,var(--green) 50%,var(--line))}
+  .acard .aico{font-size:26px;flex:none}
+  .acard .an{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:13px;color:var(--txt)}
+  .acard .ad{font-size:10px;color:var(--txt-dim);margin-top:2px;line-height:1.3}
+  .acard .alock{margin-left:auto;font-size:13px;color:var(--txt-dim)}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);z-index:50;
+    display:flex;align-items:center;gap:12px;background:var(--panel-2);border:1px solid var(--green);
+    border-radius:14px;padding:12px 18px;box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 22px color-mix(in srgb,var(--green) 35%,transparent);
+    opacity:0;transition:transform .35s cubic-bezier(.2,1.1,.3,1),opacity .35s;max-width:90vw}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast .tico{font-size:28px}
+  .toast .tt{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:13px;color:var(--green)}
+  .toast .ts2{font-size:10.5px;color:var(--txt-dim);margin-top:1px}
+
+  @media(max-width:560px){
+    .sgrid{grid-template-columns:repeat(2,1fr)}.agrid{grid-template-columns:1fr}
+    .stats{grid-template-columns:repeat(2,1fr)}.stat .val{font-size:20px}
+    .waste{font-size:54px}.procs{grid-template-columns:repeat(2,1fr)}.proc .pico{font-size:26px}
+    header .sub{display:none}.crow{grid-template-columns:1fr 80px 1fr}.equivs{grid-template-columns:1fr}
+    .tab{font-size:10px;letter-spacing:.3px}.modebar button{font-size:9px;padding:6px 8px}
+    .theme-sel{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="brand">
+      <div class="reactor">⚡</div>
+      <div>
+        <h1>ATIĞI ENERJİYE DÖNÜŞTÜR</h1>
+        <div class="sub" data-i18n="sub">Atık-Enerji Dönüşüm Tesisi · Kontrol Paneli</div>
+      </div>
+    </div>
+    <div class="hright">
+      <select class="theme-sel" id="langSel" onchange="setLang(this.value)" title="Dil / Language"><option value="tr">TR</option><option value="en">EN</option></select>
+      <select class="theme-sel" id="themeSel" onchange="setTheme(this.value)" title="Tema">
+        <option value="endustriyel">Endüstriyel</option>
+        <option value="neon">Neon</option>
+        <option value="okyanus">Okyanus</option>
+        <option value="acik">Açık</option>
+      </select>
+      <button class="sound-btn" id="soundBtn" onclick="toggleSound()" title="Ses aç/kapat">🔊</button>
+      <div class="status"><span class="dot"></span><span id="statusText">REAKTÖR HAZIR</span></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-view="game" onclick="switchTab('game')" data-i18n="tab_game">▶ Oyun</div>
+    <div class="tab" data-view="calc" onclick="switchTab('calc')" data-i18n="tab_calc">🧮 Hesapla</div>
+    <div class="tab" data-view="board" onclick="switchTab('board')" data-i18n="tab_board">🏆 Liderlik</div>
+    <div class="tab" data-view="info" onclick="switchTab('info')" data-i18n="tab_info">📚 Bilgi</div>
+    <div class="tab" data-view="ach" onclick="switchTab('ach')" data-i18n="tab_ach">🎖 Başarım</div>
+  </div>
+
+  <!-- OYUN -->
+  <div class="view active" id="view-game">
+    <div class="stats">
+      <div class="stat"><span class="label" data-i18n="l_energy">Üretilen Enerji</span><span class="val energy"><span id="energy">0</span> <span class="unit">kWh</span></span></div>
+      <div class="stat"><span class="label" data-i18n="l_score">Skor</span><span class="val" id="score">0</span></div>
+      <div class="stat"><span class="label" data-i18n="l_eff">Verimlilik</span><span class="val"><span id="eff">100</span><span class="unit">%</span></span></div>
+      <div class="stat"><span class="label" data-i18n="l_combo">Seri (Combo)</span><span class="val combo">×<span id="combo">1</span></span></div>
+    </div>
+    <div class="meter-wrap">
+      <div class="meter-top"><span data-i18n="l_grid">Şebeke Doluluğu</span><span id="lvlText">Seviye 1</span></div>
+      <div class="meter"><div class="ticks"></div><div class="fill" id="meterFill"></div></div>
+    </div>
+    <div class="stage">
+      <div class="pubanner" id="puBanner"></div>
+      <div class="modebar" id="modeBox">
+        <button data-m="sure" class="sel" onclick="setMode('sure',this)" data-i18n="m_sure">⏱ Süre 30sn</button>
+        <button data-m="hayatta" onclick="setMode('hayatta',this)" data-i18n="m_hayatta">❤ Hayatta Kalma</button>
+        <button data-m="sonsuz" onclick="setMode('sonsuz',this)" data-i18n="m_sonsuz">∞ Sonsuz</button>
+        <button data-m="kampanya" onclick="setMode('kampanya',this)" data-i18n="m_kampanya">🎯 Kampanya</button>
+      </div>
+      <div class="lives" id="lives"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="incoming-label" id="incLabel" data-i18n="incoming">▼ GELEN ATIK ▼</div>
+      <div class="waste" id="wasteEmoji">♻️</div>
+      <div class="waste-name" id="wasteName" data-i18n="ready_name">Mod + zorluk seç, başlat</div>
+      <div class="waste-hint" id="wasteHint" data-i18n="ready_hint">Tıkla ya da doğru hatta sürükle</div>
+      <div class="itimer" id="itimer"><div class="ib" id="ibar"></div></div>
+      <div class="belt" id="belt"></div>
+      <div class="diff" id="diffBox">
+        <button data-d="kolay" class="sel" onclick="setDiff('kolay',this)" data-i18n="d_kolay">Kolay</button>
+        <button data-d="orta" onclick="setDiff('orta',this)" data-i18n="d_orta">Orta</button>
+        <button data-d="zor" onclick="setDiff('zor',this)" data-i18n="d_zor">Zor</button>
+      </div>
+      <div class="campbar" id="campBar">
+        <button id="campPrev" onclick="campMove(-1)">◀</button>
+        <div class="campinfo"><b id="campName">Bölüm 1</b><span id="campGoal">Hedef: 80 kWh · 30 sn</span></div>
+        <button id="campNext" onclick="campMove(1)">▶</button>
+      </div>
+    </div>
+    <div class="procs" id="procs">
+      <div class="proc" data-type="organik" style="--c:#7CFC4A" onclick="route('organik',this)">
+        <span class="ptag"></span><span class="pico">🌱</span>
+        <span class="pname" data-i18n="p1n">Biyogaz</span><span class="pdesc" data-i18n="p1d">Organik → metan → elektrik</span>
+      </div>
+      <div class="proc" data-type="yanabilir" style="--c:#FFB23E" onclick="route('yanabilir',this)">
+        <span class="ptag"></span><span class="pico">🔥</span>
+        <span class="pname" data-i18n="p2n">Termal Yakma</span><span class="pdesc" data-i18n="p2d">Yanabilir → buhar türbini</span>
+      </div>
+      <div class="proc" data-type="geridonusum" style="--c:#3EE0D0" onclick="route('geridonusum',this)">
+        <span class="ptag"></span><span class="pico">⚙️</span>
+        <span class="pname" data-i18n="p3n">Geri Kazanım</span><span class="pdesc" data-i18n="p3d">Cam/metal/plastik</span>
+      </div>
+      <div class="proc" data-type="tehlikeli" style="--c:#FF5C57" onclick="route('tehlikeli',this)">
+        <span class="ptag"></span><span class="pico">☢️</span>
+        <span class="pname" data-i18n="p4n">Tehlikeli Bertaraf</span><span class="pdesc" data-i18n="p4d">Güvenli nötrleştirme</span>
+      </div>
+    </div>
+    <footer>
+      <span class="hint" id="footerHint">Mod ve zorluk seç → BAŞLAT · Tıkla/sürükle · Klavye 1 / 2 / 3 / 4</span>
+      <button class="btn" id="mainBtn" onclick="startGame()">BAŞLAT</button>
+    </footer>
+    <div class="overlay" id="overlay">
+      <h2 id="oTitle">Tesis Raporu</h2>
+      <div class="big"><span id="oEnergy">0</span> kWh</div>
+      <div class="rank" id="oRank">—</div>
+      <div class="ostats">
+        <div><b id="oScore">0</b><span data-i18n="o_score">Skor</span></div>
+        <div><b id="oEff">0%</b><span data-i18n="o_eff">Verimlilik</span></div>
+        <div><b id="oBest">0</b><span data-i18n="o_best">En Uzun Seri</span></div>
+      </div>
+      <div class="typestats">
+        <div class="ts"><div class="ti">🌱</div><div class="tn" data-i18n="ts1">Biyogaz</div><div class="tv" id="ts_organik">0</div></div>
+        <div class="ts"><div class="ti">🔥</div><div class="tn" data-i18n="ts2">Termal</div><div class="tv" id="ts_yanabilir">0</div></div>
+        <div class="ts"><div class="ti">⚙️</div><div class="tn" data-i18n="ts3">Geri Kaz.</div><div class="tv" id="ts_geridonusum">0</div></div>
+        <div class="ts"><div class="ti">☢️</div><div class="tn" data-i18n="ts4">Tehlikeli</div><div class="tv" id="ts_tehlikeli">0</div></div>
+      </div>
+      <div class="nameRow">
+        <input id="playerName" maxlength="14" placeholder="Operatör adın" data-i18n-ph="ph_name">
+        <button class="btn" onclick="saveScore()" data-i18n="save">KAYDET</button>
+      </div>
+      <p id="oFact"></p>
+      <div class="camp-result" id="campResult" style="display:none"></div>
+      <button class="btn ghost" id="restartBtn" onclick="startGame()">TEKRAR ÇALIŞTIR</button>
+    </div>
+  </div>
+
+  <!-- HESAPLA -->
+  <div class="view" id="view-calc">
+    <div class="calc">
+      <h3 data-i18n="calc_h">Atık → Enerji Hesaplayıcı</h3>
+      <div class="lead" data-i18n-html="calc_lead">Her atık türünden kaç <b>ton</b> işleyeceğini gir; tahmini elektrik üretimi/tasarrufu otomatik hesaplanır. Değerler tipik/yaklaşık sektör katsayılarıdır.</div>
+      <div class="crow"><div class="cm"><span class="ce">🌱</span><div><span data-i18n="cr1">Organik atık</span><small data-i18n="cr1s">Biyogaz · anaerobik çürütme</small></div></div><input type="number" min="0" id="c_organik" value="0" oninput="calc()"><div class="out" id="o_organik">0 <small>kWh</small></div></div>
+      <div class="crow"><div class="cm"><span class="ce">🔥</span><div><span data-i18n="cr2">Yanabilir/karışık atık</span><small data-i18n="cr2s">Termal yakma · WtE</small></div></div><input type="number" min="0" id="c_yanabilir" value="0" oninput="calc()"><div class="out" id="o_yanabilir">0 <small>kWh</small></div></div>
+      <div class="crow"><div class="cm"><span class="ce">📄</span><div><span data-i18n="cr3">Kağıt / karton</span><small data-i18n="crs">Geri dönüşüm · enerji tasarrufu</small></div></div><input type="number" min="0" id="c_kagit" value="0" oninput="calc()"><div class="out" id="o_kagit">0 <small>kWh</small></div></div>
+      <div class="crow"><div class="cm"><span class="ce">🥫</span><div><span data-i18n="cr4">Metal / alüminyum</span><small data-i18n="crs2">Geri dönüşüm · enerji tasarrufu</small></div></div><input type="number" min="0" id="c_metal" value="0" oninput="calc()"><div class="out" id="o_metal">0 <small>kWh</small></div></div>
+      <div class="crow"><div class="cm"><span class="ce">🥤</span><div><span data-i18n="cr5">Plastik</span><small data-i18n="crs3">Geri dönüşüm · enerji tasarrufu</small></div></div><input type="number" min="0" id="c_plastik" value="0" oninput="calc()"><div class="out" id="o_plastik">0 <small>kWh</small></div></div>
+      <div class="crow"><div class="cm"><span class="ce">🍾</span><div><span data-i18n="cr6">Cam</span><small data-i18n="crs4">Geri dönüşüm · enerji tasarrufu</small></div></div><input type="number" min="0" id="c_cam" value="0" oninput="calc()"><div class="out" id="o_cam">0 <small>kWh</small></div></div>
+      <div class="ctotal">
+        <div class="tbig"><b id="t_total">0</b><span data-i18n="calc_total">kWh toplam elektrik (üretim + tasarruf)</span></div>
+        <div class="equivs">
+          <div class="eq"><b id="eq_home">0</b><span data-i18n-html="eqv1">hanenin 1 aylık elektriği <small>(~250 kWh/ay)</small></span></div>
+          <div class="eq"><b id="eq_co2">0</b><span data-i18n-html="eqv2">kg CO₂ önlenir <small>(~0.45 kg/kWh)</small></span></div>
+          <div class="eq"><b id="eq_ev">0</b><span data-i18n-html="eqv3">elektrikli araç şarjı <small>(~50 kWh)</small></span></div>
+        </div>
+      </div>
+      <div class="disc" data-i18n="calc_disc">⚠ Katsayılar yaklaşıktır: organik ≈150 kWh/ton, termal yakma ≈550 kWh/ton, kağıt ≈4.000, plastik ≈5.800, metal ≈14.000, cam ≈600 kWh/ton tasarruf. Gerçek değerler atık bileşimi ve tesis verimine göre değişir.</div>
+    </div>
+  </div>
+
+  <!-- LİDERLİK -->
+  <div class="view" id="view-board">
+    <div class="board">
+      <h3><span data-i18n="board_h">Liderlik Tablosu</span> <button class="btn ghost" onclick="clearBoard()" data-i18n="clear">TEMİZLE</button></h3>
+      <div id="boardList"></div>
+    </div>
+  </div>
+
+  <!-- BİLGİ -->
+  <div class="view" id="view-info">
+    <div class="info">
+      <h3 data-i18n="info_h">Atık Nasıl Enerjiye Dönüşür?</h3>
+      <div class="icard" style="--c:#7CFC4A">
+        <div class="ih"><span class="ico">🌱</span><div><b data-i18n="ic1t">Biyogaz Reaktörü</b><small data-i18n="ic1s">Anaerobik Çürütme</small></div></div>
+        <p data-i18n="ic1p">Organik atıklar (yemek artığı, sebze-meyve, bahçe atığı) oksijensiz tanklarda mikroorganizmalarca parçalanır. Açığa çıkan biyogaz çoğunlukla metandır ve bir gaz motoru/jeneratörde yakılarak elektrik + ısı üretir. Geriye kalan çamur gübre olarak kullanılabilir.</p>
+        <div class="flow" data-i18n-html="ic1f">Akış: <b>Organik atık → fermantasyon → metan → jeneratör → elektrik</b></div>
+      </div>
+      <div class="icard" style="--c:#FFB23E">
+        <div class="ih"><span class="ico">🔥</span><div><b data-i18n="ic2t">Termal Yakma (WtE)</b><small data-i18n="ic2s">Yakarak Enerji Geri Kazanımı</small></div></div>
+        <p data-i18n="ic2p">Yanabilir karışık atık yüksek sıcaklıkta kontrollü biçimde yakılır. Açığa çıkan ısı suyu buhara çevirir, buhar bir türbini döndürerek elektrik üretir. Atığın hacmini %90'a kadar azaltır; modern tesislerde baca gazları filtrelenir.</p>
+        <div class="flow" data-i18n-html="ic2f">Akış: <b>Atık → yakma → ısı → buhar → türbin → elektrik</b></div>
+      </div>
+      <div class="icard" style="--c:#3EE0D0">
+        <div class="ih"><span class="ico">⚙️</span><div><b data-i18n="ic3t">Geri Kazanım</b><small data-i18n="ic3s">Malzeme + Enerji Tasarrufu</small></div></div>
+        <p data-i18n="ic3p">Cam, metal, kağıt ve plastik yeniden işlenir. Bu, ham maddeden üretime kıyasla büyük enerji tasarrufu sağlar — örneğin alüminyumu geri dönüştürmek sıfırdan üretmeye göre ~%95 daha az enerji harcar. Yani "üretilen" değil, "tasarruf edilen" enerjidir.</p>
+        <div class="flow" data-i18n-html="ic3f">Akış: <b>Atık → ayrıştırma → yeniden işleme → enerji tasarrufu</b></div>
+      </div>
+      <div class="icard" style="--c:#FF5C57">
+        <div class="ih"><span class="ico">☢️</span><div><b data-i18n="ic4t">Tehlikeli Atık Bertarafı</b><small data-i18n="ic4s">Güvenli Nötrleştirme</small></div></div>
+        <p data-i18n="ic4p">Kimyasal, tıbbi atık, atık yağ, pil, ilaç ve cıvalı ürünler doğaya ve sağlığa zararlıdır; normal çöple karışmamalıdır. Özel tesislerde güvenli biçimde nötrleştirilir, yüksek sıcaklıkta bertaraf edilir veya kontrollü depolanır. Bir kısmının ısısından enerji geri kazanılsa da asıl amaç çevreyi korumaktır.</p>
+        <div class="flow" data-i18n-html="ic4f">Akış: <b>Tehlikeli atık → özel toplama → güvenli bertaraf / nötrleştirme</b></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BAŞARIM & İSTATİSTİK -->
+  <div class="view" id="view-ach">
+    <div class="profile">
+      <h3 data-i18n="stats_h">Genel İstatistikler</h3>
+      <div class="sgrid">
+        <div class="scard"><div class="sv" id="st_games">0</div><div class="sl" data-i18n="st_games">Oynanan Oyun</div></div>
+        <div class="scard"><div class="sv" id="st_energy">0</div><div class="sl" data-i18n="st_energy">Toplam kWh</div></div>
+        <div class="scard"><div class="sv" id="st_eff">0%</div><div class="sl" data-i18n="st_eff">Ort. Verimlilik</div></div>
+        <div class="scard"><div class="sv" id="st_correct">0</div><div class="sl" data-i18n="st_correct">Doğru Ayrıştırma</div></div>
+        <div class="scard"><div class="sv" id="st_bestE">0</div><div class="sl" data-i18n="st_bestE">En İyi Enerji</div></div>
+        <div class="scard"><div class="sv" id="st_bestS">0</div><div class="sl" data-i18n="st_bestS">En İyi Skor</div></div>
+        <div class="scard"><div class="sv" id="st_combo">×1</div><div class="sl" data-i18n="st_combo">En Uzun Seri</div></div>
+        <div class="scard"><div class="sv" id="st_hazard">0</div><div class="sl" data-i18n="st_hazard">Tehlikeli Bertaraf</div></div>
+      </div>
+      <h3 class="mt"><span data-i18n="ach_h">Başarımlar</span> <span id="achCount" style="color:var(--txt-dim);font-weight:400;font-size:12px"></span></h3>
+      <div class="agrid" id="achGrid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WASTE=[
+  {e:"🍎",n:"Elma artığı",en:"Apple scraps",t:"organik"},{e:"🍌",n:"Muz kabuğu",en:"Banana peel",t:"organik"},
+  {e:"🥬",n:"Sebze atığı",en:"Vegetable waste",t:"organik"},{e:"🍞",n:"Bayat ekmek",en:"Stale bread",t:"organik"},
+  {e:"🦴",n:"Yemek kemiği",en:"Food bone",t:"organik"},{e:"🥚",n:"Yumurta kabuğu",en:"Eggshell",t:"organik"},
+  {e:"☕",n:"Kahve telvesi",en:"Coffee grounds",t:"organik"},{e:"🥕",n:"Havuç kabuğu",en:"Carrot peel",t:"organik"},
+  {e:"🐟",n:"Balık kılçığı",en:"Fish bones",t:"organik"},{e:"🍂",n:"Bahçe yaprağı",en:"Garden leaves",t:"organik"},
+  {e:"📦",n:"Karton kutu",en:"Cardboard box",t:"yanabilir"},{e:"🧻",n:"Kağıt havlu",en:"Paper towel",t:"yanabilir"},
+  {e:"👕",n:"Eski tekstil",en:"Old textile",t:"yanabilir"},{e:"🪵",n:"Odun parçası",en:"Wood piece",t:"yanabilir"},
+  {e:"📄",n:"Atık kağıt",en:"Waste paper",t:"yanabilir"},{e:"📰",n:"Gazete",en:"Newspaper",t:"yanabilir"},
+  {e:"🧶",n:"Yün artığı",en:"Wool scrap",t:"yanabilir"},{e:"🥢",n:"Tahta çubuk",en:"Wooden sticks",t:"yanabilir"},
+  {e:"🥫",n:"Teneke kutu",en:"Tin can",t:"geridonusum"},{e:"🍾",n:"Cam şişe",en:"Glass bottle",t:"geridonusum"},
+  {e:"📱",n:"Elektronik atık",en:"E-waste",t:"geridonusum"},{e:"🥤",n:"Plastik bardak",en:"Plastic cup",t:"geridonusum"},
+  {e:"💿",n:"Eski CD",en:"Old CD",t:"geridonusum"},{e:"🧴",n:"Plastik şişe",en:"Plastic bottle",t:"geridonusum"},
+  {e:"🥃",n:"Cam kavanoz",en:"Glass jar",t:"geridonusum"},{e:"🔌",n:"Kablo",en:"Cable",t:"geridonusum"},
+  {e:"🧪",n:"Kimyasal atık",en:"Chemical waste",t:"tehlikeli"},{e:"🔋",n:"Atık pil",en:"Waste battery",t:"tehlikeli"},
+  {e:"💊",n:"Son kullanma ilaç",en:"Expired medicine",t:"tehlikeli"},{e:"🛢️",n:"Atık yağ",en:"Waste oil",t:"tehlikeli"},
+  {e:"🌡️",n:"Cıvalı termometre",en:"Mercury thermometer",t:"tehlikeli"},{e:"💉",n:"Tıbbi atık",en:"Medical waste",t:"tehlikeli"},
+  {e:"💡",n:"Florasan ampul",en:"Fluorescent bulb",t:"tehlikeli"},{e:"🪫",n:"Bozuk batarya",en:"Dead battery",t:"tehlikeli"},
+  {e:"🖨️",n:"Toner kartuş",en:"Toner cartridge",t:"tehlikeli"},
+];
+const ENERGY={organik:12,yanabilir:18,geridonusum:9,tehlikeli:7};
+const PNAME={organik:"Biyogaz",yanabilir:"Termal Yakma",geridonusum:"Geri Kazanım",tehlikeli:"Tehlikeli Bertaraf"};
+const FACTS=[
+  "1 ton organik atık biyogaz tesisinde ~150 kWh elektrik üretebilir.",
+  "Atıktan enerji tesisleri çöpün hacmini %90'a kadar azaltır.",
+  "Geri dönüşüm, ham üretime göre %95'e varan enerji tasarrufu sağlar.",
+  "Çöp gazından elektrik üretmek metan salımını da azaltır.",
+  "Bir ton karışık atık modern bir tesiste ~550 kWh elektrik verebilir.",
+  "Tek bir atık pil binlerce litre toprağı/suyu kirletebilir; ayrı toplanmalı.",
+];
+const DIFF={kolay:{base:5000,floor:2600,gain:1.0},orta:{base:3600,floor:1700,gain:1.25},zor:{base:2600,floor:1100,gain:1.5}};
+const MODE_NAME={sure:"Süre",hayatta:"Hayatta Kalma",sonsuz:"Sonsuz",kampanya:"Kampanya"};
+const CAMPAIGN=[
+  {name:"Bölüm 1 · İlk Vardiya",      target:80,  time:30, diff:"kolay", hazard:false},
+  {name:"Bölüm 2 · Yoğun Mesai",      target:140, time:30, diff:"kolay", hazard:false},
+  {name:"Bölüm 3 · Tehlikeli Hat",    target:180, time:30, diff:"orta",  hazard:true},
+  {name:"Bölüm 4 · Hız Çağı",         target:240, time:25, diff:"orta",  hazard:true},
+  {name:"Bölüm 5 · Verim Baskısı",    target:200, time:30, diff:"orta",  hazard:true, minEff:70},
+  {name:"Bölüm 6 · Gece Vardiyası",   target:330, time:30, diff:"zor",   hazard:true},
+  {name:"Bölüm 7 · Reaktör Zirvesi",  target:430, time:35, diff:"zor",   hazard:true},
+  {name:"Bölüm 8 · Başmühendis Sınavı",target:560,time:40, diff:"zor",   hazard:true, minEff:75},
+];
+const CAMP_KEY="wte_campaign_v1";
+let campLevel=0, curTarget=600, allowedTypes=["organik","yanabilir","geridonusum","tehlikeli"], campPassed=false;
+function campUnlocked(){let n=parseInt(localStorage.getItem(CAMP_KEY)||"0",10);return isNaN(n)?0:n;}
+
+let energy=0,score=0,combo=1,bestCombo=1,correct=0,total=0;
+let typeOk={organik:0,yanabilir:0,geridonusum:0,tehlikeli:0};
+let current=null,running=false,timeLeft=30,timer=null,target=600;
+let diff="kolay",mode="sure",lives=3,itemTimer=null,itemDeadline=0,itemDur=5000;
+let soundOn=true;
+let energyMult=1,x2Until=0,autoSort=0,puTick=null,level=1;
+const $=id=>document.getElementById(id);
+let LANG=localStorage.getItem('wte_lang')||'tr';
+const I18N={tr:{"sub": "Atık-Enerji Dönüşüm Tesisi · Kontrol Paneli", "tab_game": "▶ Oyun", "tab_calc": "🧮 Hesapla", "tab_board": "🏆 Liderlik", "tab_info": "📚 Bilgi", "tab_ach": "🎖 Başarım", "l_energy": "Üretilen Enerji", "l_score": "Skor", "l_eff": "Verimlilik", "l_combo": "Seri (Combo)", "l_grid": "Şebeke Doluluğu", "m_sure": "⏱ Süre 30sn", "m_hayatta": "❤ Hayatta Kalma", "m_sonsuz": "∞ Sonsuz", "m_kampanya": "🎯 Kampanya", "incoming": "▼ GELEN ATIK ▼", "ready_name": "Mod + zorluk seç, başlat", "ready_hint": "Tıkla ya da doğru hatta sürükle", "d_kolay": "Kolay", "d_orta": "Orta", "d_zor": "Zor", "p1n": "Biyogaz", "p1d": "Organik → metan → elektrik", "p2n": "Termal Yakma", "p2d": "Yanabilir → buhar türbini", "p3n": "Geri Kazanım", "p3d": "Cam/metal/plastik", "p4n": "Tehlikeli Bertaraf", "p4d": "Güvenli nötrleştirme", "o_score": "Skor", "o_eff": "Verimlilik", "o_best": "En Uzun Seri", "ts1": "Biyogaz", "ts2": "Termal", "ts3": "Geri Kaz.", "ts4": "Tehlikeli", "ph_name": "Operatör adın", "save": "KAYDET", "calc_h": "Atık → Enerji Hesaplayıcı", "calc_lead": "Her atık türünden kaç <b>ton</b> işleyeceğini gir; tahmini elektrik üretimi/tasarrufu otomatik hesaplanır. Değerler tipik/yaklaşık sektör katsayılarıdır.", "cr1": "Organik atık", "cr1s": "Biyogaz · anaerobik çürütme", "cr2": "Yanabilir/karışık atık", "cr2s": "Termal yakma · WtE", "cr3": "Kağıt / karton", "crs": "Geri dönüşüm · enerji tasarrufu", "cr4": "Metal / alüminyum", "crs2": "Geri dönüşüm · enerji tasarrufu", "cr5": "Plastik", "crs3": "Geri dönüşüm · enerji tasarrufu", "cr6": "Cam", "crs4": "Geri dönüşüm · enerji tasarrufu", "calc_total": "kWh toplam elektrik (üretim + tasarruf)", "eqv1": "hanenin 1 aylık elektriği <small>(~250 kWh/ay)</small>", "eqv2": "kg CO₂ önlenir <small>(~0.45 kg/kWh)</small>", "eqv3": "elektrikli araç şarjı <small>(~50 kWh)</small>", "calc_disc": "⚠ Katsayılar yaklaşıktır: organik ≈150 kWh/ton, termal yakma ≈550 kWh/ton, kağıt ≈4.000, plastik ≈5.800, metal ≈14.000, cam ≈600 kWh/ton tasarruf. Gerçek değerler atık bileşimi ve tesis verimine göre değişir.", "board_h": "Liderlik Tablosu", "clear": "TEMİZLE", "info_h": "Atık Nasıl Enerjiye Dönüşür?", "ic1t": "Biyogaz Reaktörü", "ic1s": "Anaerobik Çürütme", "ic1p": "Organik atıklar (yemek artığı, sebze-meyve, bahçe atığı) oksijensiz tanklarda mikroorganizmalarca parçalanır. Açığa çıkan biyogaz çoğunlukla metandır ve bir gaz motoru/jeneratörde yakılarak elektrik + ısı üretir. Geriye kalan çamur gübre olarak kullanılabilir.", "ic1f": "Akış: <b>Organik atık → fermantasyon → metan → jeneratör → elektrik</b>", "ic2t": "Termal Yakma (WtE)", "ic2s": "Yakarak Enerji Geri Kazanımı", "ic2p": "Yanabilir karışık atık yüksek sıcaklıkta kontrollü biçimde yakılır. Açığa çıkan ısı suyu buhara çevirir, buhar bir türbini döndürerek elektrik üretir. Atığın hacmini %90'a kadar azaltır; modern tesislerde baca gazları filtrelenir.", "ic2f": "Akış: <b>Atık → yakma → ısı → buhar → türbin → elektrik</b>", "ic3t": "Geri Kazanım", "ic3s": "Malzeme + Enerji Tasarrufu", "ic3p": "Cam, metal, kağıt ve plastik yeniden işlenir. Bu, ham maddeden üretime kıyasla büyük enerji tasarrufu sağlar — örneğin alüminyumu geri dönüştürmek sıfırdan üretmeye göre ~%95 daha az enerji harcar. Yani \"üretilen\" değil, \"tasarruf edilen\" enerjidir.", "ic3f": "Akış: <b>Atık → ayrıştırma → yeniden işleme → enerji tasarrufu</b>", "ic4t": "Tehlikeli Atık Bertarafı", "ic4s": "Güvenli Nötrleştirme", "ic4p": "Kimyasal, tıbbi atık, atık yağ, pil, ilaç ve cıvalı ürünler doğaya ve sağlığa zararlıdır; normal çöple karışmamalıdır. Özel tesislerde güvenli biçimde nötrleştirilir, yüksek sıcaklıkta bertaraf edilir veya kontrollü depolanır. Bir kısmının ısısından enerji geri kazanılsa da asıl amaç çevreyi korumaktır.", "ic4f": "Akış: <b>Tehlikeli atık → özel toplama → güvenli bertaraf / nötrleştirme</b>", "stats_h": "Genel İstatistikler", "st_games": "Oynanan Oyun", "st_energy": "Toplam kWh", "st_eff": "Ort. Verimlilik", "st_correct": "Doğru Ayrıştırma", "st_bestE": "En İyi Enerji", "st_bestS": "En İyi Skor", "st_combo": "En Uzun Seri", "st_hazard": "Tehlikeli Bertaraf", "ach_h": "Başarımlar", "ready": "REAKTÖR HAZIR", "active": "REAKTÖR AKTİF", "stopped": "REAKTÖR DURDU", "start": "BAŞLAT", "working": "ÇALIŞIYOR", "stop": "DURDUR", "retry": "TEKRAR ÇALIŞTIR", "foot_idle": "Mod ve zorluk seç → BAŞLAT · Tıkla/sürükle · Klavye 1 / 2 / 3 / 4", "foot_sure": "Mod: Süre · 30 sn", "foot_hayatta": "Mod: Hayatta Kalma · 3 can", "foot_sonsuz": "Mod: Sonsuz · bitirmek için DURDUR", "foot_time": "⏱ Kalan süre: {s} sn · Seri ×{c}", "goal": "Hedef", "levelup": "Seviye", "levelup_d": "Tempo ve enerji artıyor!", "wname_q": "Bu atık nereye gitmeli?", "fb_timeout": "SÜRE DOLDU — atık kaçtı!", "fb_wrong": "YANLIŞ HAT → ", "fb_hazard": "TEHLİKE! → ", "fb_saved": "Kaydedildi ✓", "report": "Tesis Raporu", "collapse": "Reaktör Çöktü!", "fact_lead": "Bunu biliyor muydun? ", "ach_unlock": "🎖 Başarım açıldı: ", "empty": "Henüz kayıt yok.<br>Oyunu oynayıp skorunu kaydet — burada belirir.", "pu_x2": "⚡ ×2 ENERJİ — {s} sn", "pu_time": "⏳ +4 SANİYE", "pu_auto": "🤖 OTO-AYIR ×{n}", "camp_goal": "Hedef: {t} kWh · {tm} sn · {d}", "camp_goal_eff": " · min %{me} verim", "camp_done": "Tamamlandı!", "camp_fail": "Başarısız", "camp_all": "🏆 <b>Tüm kampanyayı bitirdin, Başmühendis oldun!</b> Dilersen bir bölümü yeniden oynayabilirsin.", "camp_pass": "Hedef <b>{t} kWh</b> aşıldı — sıradaki bölüm açıldı!", "camp_end": "KAMPANYA BİTTİ ✓", "camp_next": "SONRAKİ BÖLÜM ▶", "camp_lowE": "Hedef <b>{t} kWh</b>'ye ulaşamadın ({e} kWh).", "camp_lowEff": "Yeterli verim sağlayamadın (gereken min %{me}).", "camp_retry": "Tekrar dene!", "camp_retryb": "BÖLÜMÜ TEKRAR DENE", "ranks": ["🌫 ÇIRAK OPERATÖR", "🔧 USTA OPERATÖR", "⚡ TESİS MÜDÜRÜ", "🏆 ENERJİ ŞAMPİYONU"], "facts": ["1 ton organik atık biyogaz tesisinde ~150 kWh elektrik üretebilir.", "Atıktan enerji tesisleri çöpün hacmini %90'a kadar azaltır.", "Geri dönüşüm, ham üretime göre %95'e varan enerji tasarrufu sağlar.", "Çöp gazından elektrik üretmek metan salımını da azaltır.", "Bir ton karışık atık modern bir tesiste ~550 kWh elektrik verebilir.", "Tek bir atık pil binlerce litre toprağı/suyu kirletebilir; ayrı toplanmalı."], "mn": {"sure": "Süre", "hayatta": "Hayatta Kalma", "sonsuz": "Sonsuz", "kampanya": "Kampanya"}, "camp": ["Bölüm 1 · İlk Vardiya", "Bölüm 2 · Yoğun Mesai", "Bölüm 3 · Tehlikeli Hat", "Bölüm 4 · Hız Çağı", "Bölüm 5 · Verim Baskısı", "Bölüm 6 · Gece Vardiyası", "Bölüm 7 · Reaktör Zirvesi", "Bölüm 8 · Başmühendis Sınavı"], "ach": {"first": ["İlk Kıvılcım", "İlk oyununu bitir"], "e100": ["Enerjik", "Tek turda 100 kWh üret"], "e300": ["Süper İletken", "Tek turda 300 kWh üret"], "e600": ["Reaktör Kralı", "Tek turda 600 kWh üret"], "combo8": ["Combo Ustası", "×8 seriye ulaş"], "perfect": ["Kusursuz", "%100 verimlilikle bitir (en az 8 ayrıştırma)"], "survivor": ["Hayatta Kalan", "Hayatta Kalma modunda 150 kWh üret"], "marathon": ["Maratoncu", "Sonsuz modda 250 kWh üret"], "cleaner": ["Temizlikçi", "Toplam 50 doğru ayrıştırma yap"], "hazard": ["Tehlike Uzmanı", "Toplam 20 tehlikeli atık bertaraf et"], "veteran": ["Veteran", "Toplam 10 oyun oyna"]}},en:{"sub": "Waste-to-Energy Plant · Control Panel", "tab_game": "▶ Play", "tab_calc": "🧮 Calculate", "tab_board": "🏆 Leaderboard", "tab_info": "📚 Info", "tab_ach": "🎖 Awards", "l_energy": "Energy Produced", "l_score": "Score", "l_eff": "Efficiency", "l_combo": "Streak (Combo)", "l_grid": "Grid Charge", "m_sure": "⏱ Timed 30s", "m_hayatta": "❤ Survival", "m_sonsuz": "∞ Endless", "m_kampanya": "🎯 Campaign", "incoming": "▼ INCOMING WASTE ▼", "ready_name": "Pick mode + difficulty, start", "ready_hint": "Click or drag to the correct line", "d_kolay": "Easy", "d_orta": "Medium", "d_zor": "Hard", "p1n": "Biogas", "p1d": "Organic → methane → power", "p2n": "Incineration", "p2d": "Combustible → steam turbine", "p3n": "Recycling", "p3d": "Glass/metal/plastic", "p4n": "Hazardous Disposal", "p4d": "Safe neutralization", "o_score": "Score", "o_eff": "Efficiency", "o_best": "Best Streak", "ts1": "Biogas", "ts2": "Thermal", "ts3": "Recycle", "ts4": "Hazardous", "ph_name": "Your operator name", "save": "SAVE", "calc_h": "Waste → Energy Calculator", "calc_lead": "Enter how many <b>tons</b> of each waste type you process; the estimated electricity generated/saved is computed automatically. Values are typical/approximate industry coefficients.", "cr1": "Organic waste", "cr1s": "Biogas · anaerobic digestion", "cr2": "Combustible/mixed waste", "cr2s": "Incineration · WtE", "cr3": "Paper / cardboard", "crs": "Recycling · energy saving", "cr4": "Metal / aluminium", "crs2": "Recycling · energy saving", "cr5": "Plastic", "crs3": "Recycling · energy saving", "cr6": "Glass", "crs4": "Recycling · energy saving", "calc_total": "kWh total electricity (generated + saved)", "eqv1": "household-months of power <small>(~250 kWh/mo)</small>", "eqv2": "kg CO₂ avoided <small>(~0.45 kg/kWh)</small>", "eqv3": "EV charges <small>(~50 kWh)</small>", "calc_disc": "⚠ Coefficients are approximate: organic ≈150 kWh/ton, incineration ≈550 kWh/ton, paper ≈4,000, plastic ≈5,800, metal ≈14,000, glass ≈600 kWh/ton saved. Real values vary with waste composition and plant efficiency.", "board_h": "Leaderboard", "clear": "CLEAR", "info_h": "How Does Waste Become Energy?", "ic1t": "Biogas Reactor", "ic1s": "Anaerobic Digestion", "ic1p": "Organic waste (food scraps, fruit & vegetables, garden waste) is broken down by microorganisms in oxygen-free tanks. The biogas released is mostly methane and is burned in a gas engine/generator to produce electricity + heat. The leftover digestate can be used as fertilizer.", "ic1f": "Flow: <b>Organic waste → fermentation → methane → generator → electricity</b>", "ic2t": "Incineration (WtE)", "ic2s": "Energy Recovery by Burning", "ic2p": "Combustible mixed waste is burned in a controlled way at high temperature. The released heat turns water into steam, and the steam spins a turbine to generate electricity. It reduces waste volume by up to 90%; modern plants filter the flue gases.", "ic2f": "Flow: <b>Waste → burning → heat → steam → turbine → electricity</b>", "ic3t": "Recycling", "ic3s": "Material + Energy Saving", "ic3p": "Glass, metal, paper and plastic are reprocessed. This saves huge amounts of energy compared with making them from raw materials — for example, recycling aluminium uses ~95% less energy than making it from scratch. So it is \"saved\" energy, not \"generated\" energy.", "ic3f": "Flow: <b>Waste → sorting → reprocessing → energy saving</b>", "ic4t": "Hazardous Waste Disposal", "ic4s": "Safe Neutralization", "ic4p": "Chemicals, medical waste, waste oil, batteries, medicine and mercury products are harmful to nature and health; they must not mix with regular trash. They are safely neutralized, disposed of at high temperature or stored in a controlled way at special facilities. Some heat can be recovered, but the main goal is protecting the environment.", "ic4f": "Flow: <b>Hazardous waste → special collection → safe disposal / neutralization</b>", "stats_h": "Overall Statistics", "st_games": "Games Played", "st_energy": "Total kWh", "st_eff": "Avg. Efficiency", "st_correct": "Correct Sorts", "st_bestE": "Best Energy", "st_bestS": "Best Score", "st_combo": "Best Streak", "st_hazard": "Hazardous Disposed", "ach_h": "Awards", "ready": "REACTOR READY", "active": "REACTOR ACTIVE", "stopped": "REACTOR STOPPED", "start": "START", "working": "RUNNING", "stop": "STOP", "retry": "PLAY AGAIN", "foot_idle": "Pick mode & difficulty → START · Click/drag · Keys 1 / 2 / 3 / 4", "foot_sure": "Mode: Timed · 30 s", "foot_hayatta": "Mode: Survival · 3 lives", "foot_sonsuz": "Mode: Endless · press STOP to end", "foot_time": "⏱ Time left: {s} s · Streak ×{c}", "goal": "Goal", "levelup": "Level", "levelup_d": "Pace & energy ramp up!", "wname_q": "Where should this waste go?", "fb_timeout": "TIME UP — waste escaped!", "fb_wrong": "WRONG LINE → ", "fb_hazard": "DANGER! → ", "fb_saved": "Saved ✓", "report": "Plant Report", "collapse": "Reactor Collapsed!", "fact_lead": "Did you know? ", "ach_unlock": "🎖 Award unlocked: ", "empty": "No records yet.<br>Play a game and save your score — it appears here.", "pu_x2": "⚡ ×2 ENERGY — {s} s", "pu_time": "⏳ +4 SECONDS", "pu_auto": "🤖 AUTO-SORT ×{n}", "camp_goal": "Goal: {t} kWh · {tm} s · {d}", "camp_goal_eff": " · min {me}% eff", "camp_done": "Completed!", "camp_fail": "Failed", "camp_all": "🏆 <b>You finished the whole campaign — you're the Chief Engineer!</b> You can replay any level.", "camp_pass": "Goal <b>{t} kWh</b> beaten — next level unlocked!", "camp_end": "CAMPAIGN DONE ✓", "camp_next": "NEXT LEVEL ▶", "camp_lowE": "You didn't reach the goal of <b>{t} kWh</b> ({e} kWh).", "camp_lowEff": "Efficiency too low (min {me}% required).", "camp_retry": "Try again!", "camp_retryb": "RETRY LEVEL", "ranks": ["🌫 APPRENTICE OPERATOR", "🔧 SKILLED OPERATOR", "⚡ PLANT MANAGER", "🏆 ENERGY CHAMPION"], "facts": ["1 ton of organic waste can produce ~150 kWh of electricity in a biogas plant.", "Waste-to-energy plants reduce trash volume by up to 90%.", "Recycling can save up to 95% of the energy versus production from raw materials.", "Generating power from landfill gas also cuts methane emissions.", "One ton of mixed waste can yield ~550 kWh in a modern plant.", "A single waste battery can pollute thousands of litres of soil/water; collect it separately."], "mn": {"sure": "Timed", "hayatta": "Survival", "sonsuz": "Endless", "kampanya": "Campaign"}, "camp": ["Level 1 · First Shift", "Level 2 · Busy Hours", "Level 3 · Hazard Line", "Level 4 · Age of Speed", "Level 5 · Efficiency Pressure", "Level 6 · Night Shift", "Level 7 · Reactor Peak", "Level 8 · Chief Engineer Exam"], "ach": {"first": ["First Spark", "Finish your first game"], "e100": ["Energetic", "Produce 100 kWh in one round"], "e300": ["Superconductor", "Produce 300 kWh in one round"], "e600": ["Reactor King", "Produce 600 kWh in one round"], "combo8": ["Combo Master", "Reach an ×8 streak"], "perfect": ["Flawless", "Finish at 100% efficiency (min 8 sorts)"], "survivor": ["Survivor", "Produce 150 kWh in Survival mode"], "marathon": ["Marathoner", "Produce 250 kWh in Endless mode"], "cleaner": ["Cleaner", "Make 50 correct sorts total"], "hazard": ["Hazard Expert", "Dispose of 20 hazardous wastes total"], "veteran": ["Veteran", "Play 10 games total"]}}};
+function t(k){var d=I18N[LANG]||I18N.tr;return d[k]!=null?d[k]:(I18N.tr[k]!=null?I18N.tr[k]:'');}
+function tt(k){return t(k);}
+function modeName(m){var d=I18N[LANG]||I18N.tr;return (d.mn&&d.mn[m])||m;}
+function procName(ty){var map={organik:'p1n',yanabilir:'p2n',geridonusum:'p3n',tehlikeli:'p4n'};return t(map[ty]);}
+function campName(i){var d=I18N[LANG]||I18N.tr;return (d.camp&&d.camp[i])||('#'+(i+1));}
+function achTxt(id,idx){var d=I18N[LANG]||I18N.tr;return (d.ach&&d.ach[id]&&d.ach[id][idx])||'';}
+function applyLang(){
+  var d=I18N[LANG]||I18N.tr;
+  document.querySelectorAll('[data-i18n]').forEach(function(e){var k=e.getAttribute('data-i18n');if(d[k]!=null)e.textContent=d[k];});
+  document.querySelectorAll('[data-i18n-html]').forEach(function(e){var k=e.getAttribute('data-i18n-html');if(d[k]!=null)e.innerHTML=d[k];});
+  document.querySelectorAll('[data-i18n-ph]').forEach(function(e){var k=e.getAttribute('data-i18n-ph');if(d[k]!=null)e.placeholder=d[k];});
+  document.documentElement.lang=LANG;
+  if(typeof running!=='undefined' && !running){var b=$('mainBtn');if(b)b.textContent=t('start');$('statusText').textContent=t('ready');$('footerHint').textContent=t('foot_idle');}
+  if($('campBar')&&$('campBar').classList.contains('on'))renderCampBar();
+  if($('view-ach')&&$('view-ach').classList.contains('active'))renderProfile();
+  if($('view-board')&&$('view-board').classList.contains('active'))renderBoard();
+}
+function setLang(l){LANG=l;localStorage.setItem('wte_lang',l);var s=$('langSel');if(s)s.value=l;applyLang();}
+
+
+/* TEMA */
+function setTheme(t){document.documentElement.setAttribute("data-theme",t);localStorage.setItem("wte_theme",t);
+  const colors={endustriyel:"#0a1410",neon:"#0c0a18",okyanus:"#06121a",acik:"#eaf1ec"};
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=colors[t]||"#0a1410";}
+(function(){const t=localStorage.getItem("wte_theme")||"endustriyel";document.documentElement.setAttribute("data-theme",t);})();
+
+/* SES */
+let actx=null;
+function beep(freq,dur,type,vol){
+  if(!soundOn)return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type=type||"sine";o.frequency.value=freq;
+    g.gain.setValueAtTime(vol||0.12,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+(dur||0.12));
+    o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+(dur||0.12));
+  }catch(e){}
+}
+function sndOk(){beep(660,0.10,"triangle",0.13);setTimeout(()=>beep(880,0.10,"triangle",0.12),60);}
+function sndBad(){beep(150,0.22,"sawtooth",0.14);}
+function sndCombo(){beep(740,0.08,"square",0.10);setTimeout(()=>beep(988,0.10,"square",0.10),70);setTimeout(()=>beep(1318,0.12,"square",0.10),150);}
+function sndTimeout(){beep(330,0.12,"sine",0.12);setTimeout(()=>beep(220,0.16,"sine",0.12),90);}
+function toggleSound(){soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊":"🔇";if(soundOn)beep(880,0.08,"triangle",0.1);}
+
+function switchTab(v){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  $('view-'+v).classList.add('active');
+  if(v==='board') renderBoard();
+  if(v==='ach') renderProfile();
+}
+function setDiff(d,el){diff=d;document.querySelectorAll('#diffBox button').forEach(b=>b.classList.toggle('sel',b===el));}
+function setMode(m,el){
+  mode=m;document.querySelectorAll('#modeBox button').forEach(b=>b.classList.toggle('sel',b===el));
+  const camp=(m==="kampanya");
+  $("campBar").classList.toggle("on",camp);
+  $("diffBox").style.display=camp?"none":"flex";
+  if(camp){campLevel=Math.min(campLevel,campUnlocked());renderCampBar();}
+}
+function campMove(d){
+  const max=campUnlocked();
+  campLevel=Math.max(0,Math.min(max,campLevel+d));
+  renderCampBar();
+}
+function renderCampBar(){
+  const max=campUnlocked();
+  const lv=CAMPAIGN[campLevel];
+  const done=campLevel<max;
+  $("campName").textContent=campName(campLevel)+(done?" ✓":"");
+  let g=t("camp_goal").replace("{t}",lv.target).replace("{tm}",lv.time).replace("{d}",t("d_"+lv.diff));
+  if(lv.minEff)g+=t("camp_goal_eff").replace("{me}",lv.minEff);
+  $("campGoal").textContent=g;
+  $("campPrev").disabled=(campLevel<=0);
+  $("campNext").disabled=(campLevel>=max);
+}
+
+/* GÜÇ YÜKSELTMELERİ */
+function clearPU(){$("puBanner").classList.remove("show","x2","auto","time");}
+function maybePowerup(){
+  if(autoSort>0 || x2Until>Date.now()) return;
+  if(Math.random()<0.16){
+    const r=Math.random();
+    if(r<0.4) puX2(); else if(r<0.7) puTime(); else puAuto();
+  }
+}
+function puX2(){
+  energyMult=2;x2Until=Date.now()+7000;beep(1046,0.12,"square",0.12);
+  clearInterval(puTick);
+  $("puBanner").className="pubanner show x2";
+  puTick=setInterval(()=>{
+    const left=Math.ceil((x2Until-Date.now())/1000);
+    if(left<=0){energyMult=1;clearInterval(puTick);clearPU();}
+    else $("puBanner").textContent=t("pu_x2").replace("{s}",left);
+  },200);
+}
+function puTime(){
+  if(mode!=="sonsuz" && running){itemDeadline+=4000;}
+  beep(880,0.1,"sine",0.12);
+  const b=$("puBanner");b.className="pubanner show time";b.textContent=t("pu_time");
+  setTimeout(()=>{if(b.classList.contains("time"))clearPU();},1300);
+}
+function puAuto(){autoSort=3;beep(740,0.1,"triangle",0.12);showAutoBanner();}
+function showAutoBanner(){const b=$("puBanner");if(autoSort>0){b.className="pubanner show auto";b.textContent=t("pu_auto").replace("{n}",autoSort);}else if(b.classList.contains("auto"))clearPU();}
+
+/* OYUN */
+function renderLives(){
+  if(mode!=="hayatta"){$("lives").style.visibility="hidden";return;}
+  $("lives").style.visibility="visible";
+  let s="";for(let i=0;i<3;i++)s+= i<lives?"❤️":"🖤";
+  $("lives").textContent=s;
+}
+function startGame(){
+  energy=0;score=0;combo=1;bestCombo=1;correct=0;total=0;timeLeft=30;lives=3;running=true;level=1;
+  typeOk={organik:0,yanabilir:0,geridonusum:0,tehlikeli:0};
+  energyMult=1;x2Until=0;autoSort=0;clearInterval(puTick);clearPU();
+  curTarget=600; allowedTypes=["organik","yanabilir","geridonusum","tehlikeli"]; campPassed=false;
+  if(mode==="kampanya"){
+    const lv=CAMPAIGN[campLevel];
+    diff=lv.diff; timeLeft=lv.time; curTarget=lv.target;
+    allowedTypes = lv.hazard?["organik","yanabilir","geridonusum","tehlikeli"]:["organik","yanabilir","geridonusum"];
+  }
+  $("campResult").style.display="none";
+  $("overlay").classList.remove("show");
+  $("statusText").textContent=t("active");
+  $("diffBox").style.display="none";$("modeBox").style.display="none";$("campBar").classList.remove("on");$("belt").classList.add("on");
+  const b=$("mainBtn");
+  if(mode==="sonsuz"){b.textContent=t("stop");b.className="btn stop";b.onclick=endGame;}
+  else{b.textContent=t("working");b.className="btn ghost";b.onclick=null;}
+  renderLives();
+  if(actx&&actx.state==="suspended")actx.resume();
+  beep(523,0.1,"triangle",0.1);
+  clearInterval(timer);
+  if(mode==="sure"){timer=setInterval(tick,1000);$("footerHint").textContent=t("foot_sure");}
+  else if(mode==="kampanya"){timer=setInterval(tick,1000);const lv=CAMPAIGN[campLevel];$("footerHint").textContent=campName(campLevel)+" · "+t("goal")+" "+lv.target+" kWh";}
+  else if(mode==="hayatta"){$("footerHint").textContent=t("foot_hayatta");}
+  else{$("footerHint").textContent=t("foot_sonsuz");}
+  updateUI();nextWaste();
+}
+function tick(){timeLeft--;$("footerHint").textContent=t("foot_time").replace("{s}",timeLeft).replace("{c}",combo);if(timeLeft<=0)endGame();}
+function curLevel(){return Math.floor(energy/150)+1;}
+function nextWaste(){
+  if(!running)return;
+  const pool=WASTE.filter(w=>allowedTypes.includes(w.t));
+  current=pool[Math.floor(Math.random()*pool.length)];
+  const w=$("wasteEmoji");w.style.animation="none";void w.offsetWidth;w.style.animation="";
+  w.textContent=current.e;w.classList.remove("dragging");
+  $("wasteName").textContent=(LANG==="en"&&current.en)?current.en:current.n;$("wasteHint").textContent=t("wname_q");
+  if(mode==="sonsuz"){clearInterval(itemTimer);$("itimer").style.visibility="hidden";}
+  else{$("itimer").style.visibility="visible";const cfg=DIFF[diff];itemDur=Math.max(cfg.floor,cfg.base-(curLevel()-1)*250);startItemTimer();}
+  // Oto-Ayır power-up: doğru hatta otomatik gönder
+  if(autoSort>0){
+    setTimeout(()=>{
+      if(running&&current){autoSort--;showAutoBanner();
+        route(current.t,document.querySelector('.proc[data-type="'+current.t+'"]'),true);}
+    },650);
+  }
+}
+function startItemTimer(){
+  clearInterval(itemTimer);itemDeadline=Date.now()+itemDur;$("ibar").style.width="100%";
+  itemTimer=setInterval(()=>{
+    const left=itemDeadline-Date.now();
+    $("ibar").style.width=Math.max(0,left/itemDur*100)+"%";
+    if(left<=0){
+      clearInterval(itemTimer);total++;combo=1;sndTimeout();
+      showFeedback(t("fb_timeout"),"var(--red)");
+      if(mode==="hayatta"){loseLife();}
+      updateUI();if(running)nextWaste();
+    }
+  },40);
+}
+function loseLife(){
+  lives--;renderLives();
+  $("app").classList.add("shake");setTimeout(()=>$("app").classList.remove("shake"),420);
+  if(lives<=0){endGame();}
+}
+function route(type,el,isAuto){
+  if(!running||!current)return;clearInterval(itemTimer);total++;
+  const ok=type===current.t;
+  if(ok){
+    correct++;typeOk[current.t]++;
+    const cfg=DIFF[diff];
+    const gain=Math.round(ENERGY[current.t]*cfg.gain*(1+(combo-1)*0.25)*energyMult);
+    energy+=gain;score+=Math.round(10*combo*cfg.gain);
+    combo=Math.min(combo+1,8);bestCombo=Math.max(bestCombo,combo);
+    el.classList.add("flash-ok");showFeedback("+"+gain+" kWh","var(--green)");
+    spawnParticles(el,gain);
+    if(combo>=4){sndCombo();comboGlow();}else{sndOk();}
+    if(!isAuto) maybePowerup();
+    setTimeout(()=>el.classList.remove("flash-ok","flash-bad"),500);
+    updateUI();checkLevelUp();nextWaste();
+  }else{
+    combo=1;
+    const pen = current.t==="tehlikeli"?10:5;   // tehlikeli atık yanlış giderse daha ağır ceza
+    score=Math.max(0,score-pen);
+    el.classList.add("flash-bad");
+    showFeedback((current.t==="tehlikeli"?t("fb_hazard"):t("fb_wrong"))+procName(current.t),"var(--red)");
+    sndBad();
+    setTimeout(()=>el.classList.remove("flash-ok","flash-bad"),500);
+    updateUI();
+    if(mode==="hayatta"){loseLife();if(!running)return;}
+    else{$("app").classList.add("shake");setTimeout(()=>$("app").classList.remove("shake"),420);}
+    nextWaste();
+  }
+}
+function comboGlow(){$("app").classList.add("combo-glow");setTimeout(()=>$("app").classList.remove("combo-glow"),450);}
+function spawnParticles(el,gain){
+  const r=el.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  for(let i=0;i<6;i++){
+    const p=document.createElement("div");p.className="particle";
+    p.textContent=Math.random()<0.5?"⚡":"+"+gain;
+    p.style.left=cx+"px";p.style.top=cy+"px";
+    document.body.appendChild(p);
+    const ang=Math.random()*Math.PI*2, dist=40+Math.random()*60;
+    const dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist-40;
+    p.animate([{transform:"translate(-50%,-50%) translate(0,0) scale(1)",opacity:1},
+               {transform:`translate(-50%,-50%) translate(${dx}px,${dy}px) scale(.6)`,opacity:0}],
+              {duration:700+Math.random()*300,easing:"cubic-bezier(.2,.8,.3,1)"}).onfinish=()=>p.remove();
+  }
+}
+function showFeedback(txt,color){const f=$("feedback");f.textContent=txt;f.style.color=color;f.classList.remove("show");void f.offsetWidth;f.classList.add("show");}
+function updateUI(){
+  $("energy").textContent=energy;$("score").textContent=score;$("combo").textContent=combo;
+  $("eff").textContent=total?Math.round(correct/total*100):100;
+  $("meterFill").style.width=Math.min(100,energy/curTarget*100)+"%";
+  $("lvlText").textContent= mode==="kampanya" ? ("Hedef "+curTarget+" kWh") : ("Seviye "+curLevel());
+}
+function endGame(){
+  if(!running)return;
+  running=false;clearInterval(timer);clearInterval(itemTimer);clearInterval(puTick);
+  energyMult=1;x2Until=0;autoSort=0;clearPU();
+  const b=$("mainBtn");b.textContent=t("start");b.className="btn";b.onclick=startGame;
+  $("statusText").textContent=t("stopped");
+  $("itimer").style.visibility="hidden";$("modeBox").style.display="flex";
+  $("belt").classList.remove("on");$("lives").style.visibility="hidden";
+  if(mode==="kampanya"){$("campBar").classList.add("on");$("diffBox").style.display="none";}
+  else{$("diffBox").style.display="flex";$("campBar").classList.remove("on");}
+  const eff=total?Math.round(correct/total*100):0;
+  $("oTitle").textContent=(mode==="hayatta"&&lives<=0)?t("collapse"):(t("report")+" ("+modeName(mode)+")");
+  $("oEnergy").textContent=energy;$("oScore").textContent=score;$("oEff").textContent=eff+"%";$("oBest").textContent="×"+bestCombo;
+  $("ts_organik").textContent=typeOk.organik;$("ts_yanabilir").textContent=typeOk.yanabilir;
+  $("ts_geridonusum").textContent=typeOk.geridonusum;$("ts_tehlikeli").textContent=typeOk.tehlikeli;
+  const RK=I18N[LANG].ranks; let rank=RK[0];
+  if(energy>=300)rank=RK[1];
+  if(energy>=500)rank=RK[2];
+  if(energy>=750)rank=RK[3];
+  $("oRank").textContent=rank;
+  var FA=I18N[LANG].facts;$("oFact").textContent=t("fact_lead")+FA[Math.floor(Math.random()*FA.length)];
+  recordGameAndCheck(eff);
+  // Kampanya değerlendirmesi
+  const rb=$("restartBtn"), cr=$("campResult");
+  if(mode==="kampanya"){
+    const lv=CAMPAIGN[campLevel];
+    campPassed = energy>=lv.target && (!lv.minEff || eff>=lv.minEff);
+    cr.style.display="block";
+    if(campPassed){
+      $("oTitle").textContent="✓ "+campName(campLevel)+" — "+t("camp_done");
+      if(campLevel===campUnlocked() && campLevel<CAMPAIGN.length-1){localStorage.setItem(CAMP_KEY,String(campLevel+1));}
+      const last=(campLevel>=CAMPAIGN.length-1);
+      cr.innerHTML = last ? t("camp_all") : t("camp_pass").replace("{t}",lv.target);
+      if(last){rb.textContent=t("camp_end");rb.onclick=()=>{$("overlay").classList.remove("show");renderCampBar();};}
+      else{rb.textContent=t("camp_next");rb.onclick=()=>{campLevel++;startGame();};}
+    } else {
+      $("oTitle").textContent="✗ "+campName(campLevel)+" — "+t("camp_fail");
+      cr.innerHTML = (energy<lv.target ? t("camp_lowE").replace("{t}",lv.target).replace("{e}",energy) : t("camp_lowEff").replace("{me}",lv.minEff))+" "+t("camp_retry");
+      rb.textContent=t("camp_retryb");rb.onclick=startGame;
+    }
+  } else {
+    cr.style.display="none";rb.textContent=t("retry");rb.onclick=startGame;
+  }
+  $("footerHint").textContent=t("foot_idle");
+  beep(440,0.12,"triangle",0.1);setTimeout(()=>beep(330,0.18,"triangle",0.1),130);
+  $("overlay").classList.add("show");$("playerName").focus();
+}
+
+/* SÜRÜKLE-BIRAK */
+let dragging=false, ghost=null;
+const wasteEl=$("wasteEmoji");
+wasteEl.addEventListener("pointerdown",e=>{
+  if(!running||!current)return;
+  dragging=true;wasteEl.classList.add("dragging");
+  ghost=document.createElement("div");ghost.className="drag-ghost";ghost.textContent=current.e;
+  ghost.style.left=e.clientX+"px";ghost.style.top=e.clientY+"px";
+  document.body.appendChild(ghost);wasteEl.setPointerCapture(e.pointerId);
+});
+wasteEl.addEventListener("pointermove",e=>{
+  if(!dragging)return;
+  ghost.style.left=e.clientX+"px";ghost.style.top=e.clientY+"px";
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  const proc=el&&el.closest?el.closest(".proc"):null;
+  document.querySelectorAll(".proc").forEach(p=>p.classList.toggle("dragover",p===proc));
+});
+wasteEl.addEventListener("pointerup",e=>{
+  if(!dragging)return;dragging=false;
+  if(ghost){ghost.remove();ghost=null;}
+  wasteEl.classList.remove("dragging");
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  const proc=el&&el.closest?el.closest(".proc"):null;
+  document.querySelectorAll(".proc").forEach(p=>p.classList.remove("dragover"));
+  if(proc)route(proc.dataset.type,proc);
+});
+
+/* LİDERLİK */
+const LB_KEY="wte_leaderboard_v1";
+function getBoard(){try{return JSON.parse(localStorage.getItem(LB_KEY))||[]}catch(e){return[]}}
+function saveScore(){
+  const name=($("playerName").value||"Anonim").trim().slice(0,14)||"Anonim";
+  const eff=total?Math.round(correct/total*100):0;
+  const list=getBoard();
+  list.push({name,energy,score,eff,diff,mode:modeName(mode),date:new Date().toLocaleDateString()});
+  list.sort((a,b)=>b.energy-a.energy);
+  localStorage.setItem(LB_KEY,JSON.stringify(list.slice(0,20)));
+  showFeedback(t("fb_saved"),"var(--cyan)");beep(880,0.1,"triangle",0.1);$("playerName").value="";switchTab('board');
+}
+function clearBoard(){if(confirm("Tüm liderlik tablosu silinsin mi?")){localStorage.removeItem(LB_KEY);renderBoard();}}
+function renderBoard(){
+  const list=getBoard();const c=$("boardList");
+  if(!list.length){c.innerHTML='<div class="empty">'+t("empty")+'</div>';return;}
+  c.innerHTML=list.map((r,i)=>`
+    <div class="lbrow ${i<3?'top'+(i+1):''}">
+      <div class="rk">${i+1}</div>
+      <div class="nm">${escapeHtml(r.name)}<small>${(r.mode?r.mode+' · ':'')}${r.diff} · ${r.date}</small></div>
+      <div class="en">${r.energy} <small>kWh</small></div>
+      <div class="sc">Skor ${r.score}<br><small>%${r.eff}</small></div>
+    </div>`).join("");
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+/* HESAPLAYICI */
+const FACTORS={organik:150,yanabilir:550,kagit:4000,metal:14000,plastik:5800,cam:600};
+function calc(){
+  let tot=0;
+  for(const k in FACTORS){
+    const v=Math.max(0,parseFloat($("c_"+k).value)||0);
+    const kwh=Math.round(v*FACTORS[k]);
+    $("o_"+k).innerHTML=kwh.toLocaleString("tr-TR")+' <small>kWh</small>';
+    tot+=kwh;
+  }
+  $("t_total").textContent=tot.toLocaleString("tr-TR");
+  $("eq_home").textContent=Math.round(tot/250).toLocaleString("tr-TR");
+  $("eq_co2").textContent=Math.round(tot*0.45).toLocaleString("tr-TR");
+  $("eq_ev").textContent=Math.round(tot/50).toLocaleString("tr-TR");
+}
+
+document.addEventListener("keydown",e=>{
+  if(!running)return;
+  if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
+  const map={"1":"organik","2":"yanabilir","3":"geridonusum","4":"tehlikeli"};
+  if(map[e.key])route(map[e.key],document.querySelector('.proc[data-type="'+map[e.key]+'"]'));
+});
+
+/* İSTATİSTİK + BAŞARIM */
+const ST_KEY="wte_stats_v1", ACH_KEY="wte_ach_v1";
+const ACHIEVEMENTS=[
+  {id:"first",   icon:"🌱", name:"İlk Kıvılcım",   desc:"İlk oyununu bitir"},
+  {id:"e100",    icon:"⚡", name:"Enerjik",         desc:"Tek turda 100 kWh üret"},
+  {id:"e300",    icon:"🔌", name:"Süper İletken",   desc:"Tek turda 300 kWh üret"},
+  {id:"e600",    icon:"🏭", name:"Reaktör Kralı",   desc:"Tek turda 600 kWh üret"},
+  {id:"combo8",  icon:"🔥", name:"Combo Ustası",    desc:"×8 seriye ulaş"},
+  {id:"perfect", icon:"✨", name:"Kusursuz",        desc:"%100 verimlilikle bitir (en az 8 ayrıştırma)"},
+  {id:"survivor",icon:"❤️", name:"Hayatta Kalan",   desc:"Hayatta Kalma modunda 150 kWh üret"},
+  {id:"marathon",icon:"♾️", name:"Maratoncu",       desc:"Sonsuz modda 250 kWh üret"},
+  {id:"cleaner", icon:"🧹", name:"Temizlikçi",      desc:"Toplam 50 doğru ayrıştırma yap"},
+  {id:"hazard",  icon:"☢️", name:"Tehlike Uzmanı",  desc:"Toplam 20 tehlikeli atık bertaraf et"},
+  {id:"veteran", icon:"🎖️", name:"Veteran",         desc:"Toplam 10 oyun oyna"},
+];
+function getStats(){
+  try{return JSON.parse(localStorage.getItem(ST_KEY))||{}}catch(e){return{}}
+}
+function blankStats(){return{games:0,energy:0,correct:0,sorts:0,bestE:0,bestS:0,combo:0,hazard:0};}
+function getUnlocked(){try{return JSON.parse(localStorage.getItem(ACH_KEY))||[]}catch(e){return[]}}
+function recordGameAndCheck(eff){
+  const s=Object.assign(blankStats(),getStats());
+  s.games++; s.energy+=energy; s.correct+=correct; s.sorts+=total;
+  s.bestE=Math.max(s.bestE,energy); s.bestS=Math.max(s.bestS,score); s.combo=Math.max(s.combo,bestCombo);
+  s.hazard+=typeOk.tehlikeli;
+  localStorage.setItem(ST_KEY,JSON.stringify(s));
+  // başarım kontrolü
+  const unlocked=getUnlocked(); const newly=[];
+  const cond={
+    first: s.games>=1,
+    e100: energy>=100, e300: energy>=300, e600: energy>=600,
+    combo8: bestCombo>=8,
+    perfect: eff===100 && total>=8,
+    survivor: mode==="hayatta" && energy>=150,
+    marathon: mode==="sonsuz" && energy>=250,
+    cleaner: s.correct>=50,
+    hazard: s.hazard>=20,
+    veteran: s.games>=10,
+  };
+  ACHIEVEMENTS.forEach(a=>{ if(cond[a.id] && !unlocked.includes(a.id)){unlocked.push(a.id);newly.push(a);} });
+  if(newly.length){localStorage.setItem(ACH_KEY,JSON.stringify(unlocked));}
+  // toast'ları sırayla göster (rapor ekranının üstünde)
+  newly.forEach((a,i)=>setTimeout(()=>showToast(a),700+i*1600));
+}
+function showMsgToast(icon,title,sub){
+  var el=document.createElement("div");el.className="toast";
+  el.innerHTML='<div class="tico">'+icon+'</div><div><div class="tt">'+title+'</div><div class="ts2">'+sub+'</div></div>';
+  document.body.appendChild(el);
+  requestAnimationFrame(function(){el.classList.add("show");});
+  setTimeout(function(){el.classList.remove("show");setTimeout(function(){el.remove();},400);},2400);
+}
+function showToast(a){beep(1318,0.1,"square",0.12);setTimeout(function(){beep(1760,0.12,"square",0.1);},120);showMsgToast(a.icon,tt("ach_unlock")+achTxt(a.id,0),achTxt(a.id,1));}
+function checkLevelUp(){if(mode==="kampanya")return;var nl=curLevel();if(nl>level){level=nl;onLevelUp(nl);}}
+function onLevelUp(n){beep(880,0.08,"square",0.12);setTimeout(function(){beep(1175,0.1,"square",0.12);},80);setTimeout(function(){beep(1568,0.12,"square",0.1);},170);comboGlow();showMsgToast("⬆",t("levelup")+" "+n,t("levelup_d"));}
+function renderProfile(){
+  const s=Object.assign(blankStats(),getStats());
+  const avgEff=s.sorts?Math.round(s.correct/s.sorts*100):0;
+  $("st_games").textContent=s.games;
+  $("st_energy").textContent=s.energy.toLocaleString("tr-TR");
+  $("st_eff").textContent=avgEff+"%";
+  $("st_correct").textContent=s.correct;
+  $("st_bestE").textContent=s.bestE;
+  $("st_bestS").textContent=s.bestS;
+  $("st_combo").textContent="×"+s.combo;
+  $("st_hazard").textContent=s.hazard;
+  const unlocked=getUnlocked();
+  $("achCount").textContent="("+unlocked.length+"/"+ACHIEVEMENTS.length+")";
+  $("achGrid").innerHTML=ACHIEVEMENTS.map(a=>{
+    const on=unlocked.includes(a.id);
+    return '<div class="acard'+(on?' on':'')+'"><div class="aico">'+a.icon+'</div>'+
+           '<div><div class="an">'+achTxt(a.id,0)+'</div><div class="ad">'+achTxt(a.id,1)+'</div></div>'+
+           '<div class="alock">'+(on?'✓':'🔒')+'</div></div>';
+  }).join("");
+}
+
+/* PWA */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});
+}
+
+(function(){const t=localStorage.getItem("wte_theme")||"endustriyel";const s=$("themeSel");if(s)s.value=t;})();
+(function(){var s=$('langSel');if(s)s.value=LANG;})();
+applyLang();
+calc();renderBoard();
+</script>
+</body>
+</html>
